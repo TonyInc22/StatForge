@@ -10,21 +10,29 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://127.0.0.1:5174"
 ];
+
+// 1) Simple, dev-friendly CORS (no throwing, echoes origin)
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: true, // reflect request origin (e.g., http://localhost:5173)
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-    optionsSuccessStatus: 200
+    credentials: false,           // keep false unless you're using cookies
+    optionsSuccessStatus: 200,    // so some older browsers don't choke
   })
 );
+
+// 2) Lightweight preflight handler (replace ANY app.options() usage)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    // You can add max-age if you want the browser to cache preflights
+    res.setHeader("Access-Control-Max-Age", "86400"); // 24h
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// 3) then your JSON/body parser and routes
 app.use(express.json());
 
 // GET teams
