@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { z } from "zod";
+import { int, z } from "zod";
 import { PrismaClient } from "@prisma/client";
 
 const app = express();
@@ -35,23 +35,40 @@ app.use((req, res, next) => {
 // 3) then your JSON/body parser and routes
 app.use(express.json());
 
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
 // GET teams
 app.get("/api/teams", cors(), async (_req, res) => {
   const teams = await prisma.team.findMany({ orderBy: { name: "asc" } });
   res.json(teams);
 });
 
+// GET specific team
+app.get("/api/teams/:id", cors(), async (_req, res) => {
+  let TeamId = Number(_req.params.id);
+
+  if (isNaN(TeamId))
+    return res.status(400).json({error: "Invalid Team ID"})
+
+  const Team = await prisma.team.findFirst({where: {id: TeamId}});
+  
+  if (!Team)
+    return res.status(400).json({error: "Team not found"})
+  
+  res.json(Team)
+})
+
 // POST team
 app.post("/api/teams", cors(), async (req, res) => {
-  const bodySchema = z.object({
-	name: z.string().min(2),
-	code: z.string().min(2).max(5),
-	league: z.string().min(2),
-  });
-  const parsed = bodySchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(parsed.error.flatten());
-  const team = await prisma.team.create({ data: parsed.data });
-  res.status(201).json(team);
+  // const bodySchema = z.object({
+	// name: z.string().min(2),
+	// code: z.string().min(2).max(5),
+	// league: z.string().min(2),
+  // });
+  // const parsed = bodySchema.safeParse(req.body);
+  // if (!parsed.success) return res.status(400).json(parsed.error.flatten());
+  // const team = await prisma.team.create({ data: parsed.data });
+  // res.status(201).json(team);
 });
 
 const port = process.env.PORT ?? 4000;
